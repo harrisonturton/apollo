@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module Request (
 	Request,
@@ -7,6 +8,12 @@ module Request (
 	parseRawRequestPath,
 	parseRawRequestOps
 ) where
+
+import Debug.Trace
+import Data.List (isInfixOf, dropWhileEnd)
+import Data.List.Split (splitOn)
+import Data.Maybe (catMaybes)
+import Data.Char (isSpace)
 
 data RequestType = GET | PUT
   deriving Show
@@ -44,4 +51,15 @@ parseRawRequestPath = Just . (!! 1) . words . head . lines
 -- Turn an (entire) raw HTTP request into just
 -- a lookup table of their options.
 parseRawRequestOps :: String -> Maybe [(String, String)]
-parseRawRequestOps rawReq = Just [("One", "Two")]
+parseRawRequestOps = sequence . filter (/= Nothing) . map parseSingleOption . tail . lines . strip
+
+parseSingleOption :: String -> Maybe (String, String)
+parseSingleOption line
+	| ": " `isInfixOf` line = Just (key, value)
+  | ':' `elem` line       = Just (key', value')
+	| otherwise             = trace (show line) Nothing
+ where [key, value]   = (splitOn ": " . strip) line
+       [key', value'] = (splitOn ":"  . strip) line
+
+strip :: String -> String
+strip = dropWhileEnd isSpace . dropWhile isSpace
