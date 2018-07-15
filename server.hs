@@ -2,9 +2,11 @@
 
 import Network (withSocketsDo, listenOn, PortID(..))
 import Network.Socket (Socket, accept)
-import Network.Socket.ByteString (sendAll, send, recv)
+import Network.Socket.ByteString (sendAll, recv)
 import Control.Concurrent.Async (async)
 import Control.Monad (forever)
+import Data.ByteString.Char8 (unpack)
+import Request
 
 main = withSocketsDo $ do
   sock <- listenOn $ PortNumber 3000
@@ -16,6 +18,8 @@ main = withSocketsDo $ do
 handleAccept :: Socket -> IO ()
 handleAccept sock = do
   putStrLn $ "Connected!"
-  rawReq <- recv sock 1024
-  putStrLn $ show rawReq
+  rawReq <- recv sock 4096
+  let req = parseRawRequest $ unpack rawReq
+  putStrLn $ show req
+  putStrLn $ unpack rawReq
   sendAll sock "Hello!\n"
