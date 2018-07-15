@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Network (withSocketsDo, listenOn, PortID(..))
-import Network.Socket (Socket, accept)
-import Network.Socket.ByteString (sendAll, recv)
+import Network.Socket (Socket, accept, close)
+import Network.Socket.ByteString (sendAll, recv) 
 import Control.Concurrent.Async (async)
 import Control.Monad (forever)
 import Data.ByteString.Char8 (unpack)
@@ -17,9 +17,13 @@ main = withSocketsDo $ do
 
 handleAccept :: Socket -> IO ()
 handleAccept sock = do
-  putStrLn $ "Connected!"
-  rawReq <- recv sock 4096
+	putStrLn $ "New connection!"
+  rawReq <- recv sock 1024
   let req = parseRawRequest $ unpack rawReq
-  putStrLn $ show req
-  putStrLn $ unpack rawReq
-  sendAll sock "Hello!\n"
+  case req of
+		Just r  -> handleRequest sock r
+		Nothing -> putStrLn "Invalid request: failed to parse Request."
+
+handleRequest :: Socket -> Request -> IO ()
+handleRequest sock req = do
+	sendAll sock "In handleRequest!\n" -- Must have newline otherwise doesn't appear in client
