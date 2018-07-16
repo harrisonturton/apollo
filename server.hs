@@ -7,8 +7,7 @@ import Control.Concurrent.Async (async)
 import Control.Monad (forever)
 import Data.ByteString.Char8 (unpack)
 import Request
-
-type HandleRequest = Request -> String
+import Response
 
 main = withSocketsDo $ do
   sock <- listenOn $ PortNumber 3000
@@ -31,5 +30,6 @@ handleAccept sock = do
 
 handleRequest :: Socket -> Request -> IO ()
 handleRequest sock req = do
+  --let response = route req router
   sendAll sock "In handleRequest!\n" 
-	close sock -- Must close sock otherwise data isn't sent
+  --close sock -- Must close sock otherwise data isn't sent
