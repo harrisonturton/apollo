@@ -10,7 +10,7 @@ import Data.ByteString.Char8 (unpack)
 import Request
 import Response
 
-type Handler = R.Reader Request String
+type Handler = R.Reader Request Response
 type RoutePattern = String
 
 data ServerState =
@@ -20,6 +20,7 @@ data ServerState =
 
 initState = ServerState []
 
+-- apollo is the main entry point into the server
 apollo :: PortID -> ST.State ServerState () -> IO ()
 apollo port actions = do
   sock <- listenOn $ port
@@ -29,6 +30,9 @@ apollo port actions = do
     (conn, _) <- accept sock
     async $ handleConn conn state
 
+-- handleConn is called in a new thread for each connection
+-- handles turning the raw request plaintext into a proper
+-- Request type
 handleConn :: Socket -> ServerState -> IO ()
 handleConn sock state = do
   putStrLn "New connection!"
@@ -39,11 +43,7 @@ handleConn sock state = do
     Just r -> handleRequest r state
     Nothing -> putStrLn "Invalid request: could not parse request."
 
-get :: RoutePattern -> Handler -> ST.State ServerState ()
-get route handler = do
-  (ServerState handlers) <- ST.get
-  ST.put $ ServerState $ (route, handler):handlers
-
+-- handleRequest finds the appropriate handler for the Request
 handleRequest :: Request -> ServerState -> IO ()
 handleRequest req state = do
   let p = path req 
@@ -53,7 +53,13 @@ handleRequest req state = do
 		Just h  -> putStrLn $ show $ R.runReader h req
 		Nothing -> putStrLn $ "No handler for route " ++ p
 
+-- adds a handler for GET requests at a specific route
+get :: RoutePattern -> Handler -> ST.State ServerState ()
+get route handler = do
+  (ServerState handlers) <- ST.get
+  ST.put $ ServerState $ (route, handler):handlers
+
 main = apollo (PortNumber 3000) $ do
   get "/" $ do
     req <- R.ask
-    return "Done"
+    return $ Response "Done"
