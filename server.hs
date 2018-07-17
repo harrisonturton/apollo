@@ -1,6 +1,12 @@
 
+module Server (
+  ServerState,
+  apollo
+) where
+
 import qualified Control.Monad.State as ST
 import qualified Control.Monad.Reader as R
+
 import Prelude hiding (all)
 import Text.Regex.Posix ((=~))
 import Network (withSocketsDo, listenOn, PortID(..))
@@ -9,27 +15,19 @@ import Network.Socket.ByteString (sendAll, recv)
 import Control.Concurrent.Async (async)
 import Control.Monad (forever)
 import Data.ByteString.Char8 (pack, unpack)
+
 import Request
 import Response
+import State
 
-type Handler      = R.Reader Request Response
-type RoutePattern = String
-type Route        = String
-type HandlerTable = [(RoutePattern, RequestMethod, Handler)]
-
-data ServerState =
-  ServerState {
-    handlers :: HandlerTable
-  }
-
-initState = ServerState []
+initialState = ServerState []
 
 -- apollo is the main entry point into the server
 apollo :: PortID -> ST.State ServerState () -> IO ()
 apollo port actions = do
   sock <- listenOn $ port
   putStrLn $ "Running Apollo on " ++ show port ++ "..."
-  let state = ST.execState actions initState
+  let state = ST.execState actions initialState
   forever $ do
     (conn, _) <- accept sock
     async $ handleConn conn state
@@ -58,23 +56,6 @@ handleRequest sock req state = do
   case handler of
     Just h  -> sendAll sock . pack . serializeResponse $ R.runReader h req
     Nothing -> putStrLn $ "No handler for route " ++ p
-
--- adds a handler for GET requests at a specific route
-get :: RoutePattern -> Handler -> ST.State ServerState ()
-get route handler = do
-  (ServerState handlers) <- ST.get
-  ST.put $ ServerState $ handlers ++ [(route, GET, handler)] -- Must append
-
--- adds a handler for GET requests at a specific route
-put :: RoutePattern -> Handler -> ST.State ServerState ()
-put route handler = do
-  (ServerState handlers) <- ST.get
-  ST.put $ ServerState $ handlers ++ [(route, PUT, handler)] -- Must append
-
-all :: RoutePattern -> Handler -> ST.State ServerState ()
-all route handler = do
-  (ServerState handlers) <- ST.get
-  ST.put $ ServerState $ handlers ++ [(route, ALL, handler)] -- Must append
 
 -- finds a handler in the handler table
 lookupHandler :: Route -> RequestMethod -> HandlerTable -> Maybe Handler
