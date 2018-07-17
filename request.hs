@@ -11,8 +11,6 @@ import Data.Char (isSpace)
 data RequestMethod = GET | PUT | UPDATE | DELETE
   deriving Show
 
-req = "GET /docs/index.html HTTP/1.1\nHost: www.nowhere123.com\nAccept: image/gif, image/jpeg, */*\nAccept-Language: en-us\nAccept-Encoding: gzip, deflate\nUser-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)\n\nBODY"
-
 data Request =
 	Request {
     uri     :: String,
@@ -20,6 +18,39 @@ data Request =
 		headers :: [(String, String)],
 		body    :: String
   } deriving Show
+
+
+------------ Serialization ---------- 
+
+serializeRequest :: Request -> String
+serializeRequest req = serializeMethod req
+	                   ++ " "
+	                   ++ serializeUri req
+										 ++ " HTTP/1.1\n"
+										 ++ serializeHeaders req
+										 ++ "\n\n"
+										 ++ serializeBody req
+
+serializeUri :: Request -> String
+serializeUri = uri
+
+serializeBody :: Request -> String
+serializeBody = body
+
+serializeMethod :: Request -> String
+serializeMethod req =
+	case method req of
+		GET    -> "GET"
+		PUT    -> "PUT"
+		UPDATE -> "UPDATE"
+		DELETE -> "DELETE"
+		_      -> ""
+
+serializeHeaders :: Request -> String
+serializeHeaders =
+	foldl (\acc (key, val) -> acc ++ "\n" ++ key ++ ": " ++ val) "" . headers
+
+---------- Deserialization ---------- 
 
 readRequest :: String -> Maybe Request
 readRequest req =
@@ -60,14 +91,9 @@ readOneHeader header
   where [key, value]   = (splitOn ": " . strip) header
         [key', value'] = (splitOn ":"  . strip) header
 
--- GET /docs/index.html HTTP/1.1
--- Host: www.nowhere123.com
--- Accept: image/gif, image/jpeg, */*
--- Accept-Language: en-us
--- Accept-Encoding: gzip, deflate
--- User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)
--- (blank line)
-
 -- Strip of leading & trailing whitespace
 strip :: String -> String
 strip = dropWhileEnd isSpace . dropWhile isSpace
+
+-- For testing
+req = "GET /docs/index.html HTTP/1.1\nHost: www.nowhere123.com\nAccept: image/gif, image/jpeg, */*\nAccept-Language: en-us\nAccept-Encoding: gzip, deflate\nUser-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)\n\nBODY"
