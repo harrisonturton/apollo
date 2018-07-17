@@ -6,7 +6,7 @@ import Network.Socket (Socket, accept, close)
 import Network.Socket.ByteString (sendAll, recv) 
 import Control.Concurrent.Async (async)
 import Control.Monad (forever)
-import Data.ByteString.Char8 (unpack)
+import Data.ByteString.Char8 (pack, unpack)
 import Request
 import Response
 
@@ -40,17 +40,18 @@ handleConn sock state = do
   putStrLn $ unpack rawReq
   let req = parseRawRequest $ unpack rawReq
   case req of
-    Just r -> handleRequest r state
+    Just r -> handleRequest sock r state
     Nothing -> putStrLn "Invalid request: could not parse request."
 
 -- handleRequest finds the appropriate handler for the Request
-handleRequest :: Request -> ServerState -> IO ()
-handleRequest req state = do
+handleRequest :: Socket -> Request -> ServerState -> IO ()
+handleRequest sock req state = do
   let p = path req 
   putStrLn $ "Request for route " ++ p
   let handler = lookup p (handlers state)
   case handler of
-		Just h  -> putStrLn $ show $ R.runReader h req
+		Just h  -> sendAll sock $ pack $ show $ R.runReader h req
+		--Just h  -> putStrLn $ show $ R.runReader h req
 		Nothing -> putStrLn $ "No handler for route " ++ p
 
 -- adds a handler for GET requests at a specific route
