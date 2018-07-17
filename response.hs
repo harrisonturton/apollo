@@ -1,6 +1,6 @@
 
 module Response (
-	Response
+	Response(..)
 ) where
 
 data Response = Response String

@@ -38,7 +38,7 @@ handleConn sock state = do
   putStrLn "New connection!"
   rawReq <- recv sock 4096
   putStrLn $ unpack rawReq
-  let req = parseRawRequest $ unpack rawReq
+  let req = readRequest $ unpack rawReq
   case req of
     Just r -> handleRequest sock r state
     Nothing -> putStrLn "Invalid request: could not parse request."
@@ -46,7 +46,7 @@ handleConn sock state = do
 -- handleRequest finds the appropriate handler for the Request
 handleRequest :: Socket -> Request -> ServerState -> IO ()
 handleRequest sock req state = do
-  let p = path req 
+  let p = uri req 
   putStrLn $ "Request for route " ++ p
   let handler = lookup p (handlers state)
   case handler of

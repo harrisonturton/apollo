@@ -1,65 +1,73 @@
-{-# LANGUAGE OverloadedStrings #-}
 
-module Request (
-	Request,
-	RequestType,
-  parseRawRequest,
-	parseRawRequestType,
-	parseRawRequestPath,
-	parseRawRequestOps
+module Request(
+  Request(..),
+	RequestMethod,
+	readRequest
 ) where
-
-import Debug.Trace
 import Data.List (isInfixOf, dropWhileEnd)
 import Data.List.Split (splitOn)
-import Data.Maybe (catMaybes)
 import Data.Char (isSpace)
 
-data RequestType = GET | PUT
+data RequestMethod = GET | PUT | UPDATE | DELETE
   deriving Show
+
+req = "GET /docs/index.html HTTP/1.1\nHost: www.nowhere123.com\nAccept: image/gif, image/jpeg, */*\nAccept-Language: en-us\nAccept-Encoding: gzip, deflate\nUser-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)\n\nBODY"
 
 data Request =
 	Request {
-    reqType :: RequestType,
-		path    :: String,
-		options :: [(String, String)]
+    uri     :: String,
+		method  :: RequestMethod,
+		headers :: [(String, String)],
+		body    :: String
   } deriving Show
 
--- Turn a raw HTTP request into a request
--- object.
-parseRawRequest :: String -> Maybe Request
-parseRawRequest rawReq =
-  Request <$> parseRawRequestType rawReq
-	        <*> parseRawRequestPath rawReq
-					<*> parseRawRequestOps  rawReq
+readRequest :: String -> Maybe Request
+readRequest req =
+	Request <$> readUri     req
+					<*> readMethod  req
+					<*> readHeaders req
+					<*> readBody    req
 
--- Turn an (entire) raw HTTP request into just
--- the request type.
-parseRawRequestType :: String -> Maybe RequestType
-parseRawRequestType rawReq = 
-	case typ of
-    "GET" -> Just GET
-    "PUT" -> Just PUT
-    _     -> Nothing
-  where typ = (head . words . head . lines) rawReq
+readUri :: String -> Maybe String
+readUri = Just . (!! 1) . words . head . lines
 
--- Turn an (entire) raw HTTP request into just
--- the path.
-parseRawRequestPath :: String -> Maybe String
-parseRawRequestPath = Just . (!! 1) . words . head . lines
+readMethod :: String -> Maybe RequestMethod
+readMethod req =
+  case method of
+    "GET"    -> Just GET
+    "PUT"    -> Just PUT
+    "UPDATE" -> Just UPDATE
+    "DELETE" -> Just DELETE
+    _        -> Nothing
+  where method  = (head . words . head . lines) req
 
--- Turn an (entire) raw HTTP request into just
--- a lookup table of their options.
-parseRawRequestOps :: String -> Maybe [(String, String)]
-parseRawRequestOps = sequence . filter (/= Nothing) . map parseSingleOption . tail . lines . strip
+readHeaders :: String -> Maybe [(String, String)]
+readHeaders req = sequence . filter (/= Nothing) . map readOneHeader $ headers
+  where headers = takeWhile (/= "") . tail . lines $ req
 
-parseSingleOption :: String -> Maybe (String, String)
-parseSingleOption line
-	| ": " `isInfixOf` line = Just (key, value)
-  | ':' `elem` line       = Just (key', value')
-	| otherwise             = trace (show line) Nothing
- where [key, value]   = (splitOn ": " . strip) line
-       [key', value'] = (splitOn ":"  . strip) line
+readBody :: String -> Maybe String
+readBody req =
+  case length body of
+    0 -> Just ""
+    _ -> Just $ unlines body
+  where body = (dropWhile (/= "") . lines) req
 
+readOneHeader :: String -> Maybe (String, String)
+readOneHeader header
+	| ": " `isInfixOf` header = Just (key, value)
+  | ':'  `elem` header      = Just (key', value')
+	| otherwise               = Nothing
+  where [key, value]   = (splitOn ": " . strip) header
+        [key', value'] = (splitOn ":"  . strip) header
+
+-- GET /docs/index.html HTTP/1.1
+-- Host: www.nowhere123.com
+-- Accept: image/gif, image/jpeg, */*
+-- Accept-Language: en-us
+-- Accept-Encoding: gzip, deflate
+-- User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)
+-- (blank line)
+
+-- Strip of leading & trailing whitespace
 strip :: String -> String
 strip = dropWhileEnd isSpace . dropWhile isSpace
