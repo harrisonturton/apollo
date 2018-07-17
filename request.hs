@@ -25,17 +25,11 @@ data Request =
 serializeRequest :: Request -> String
 serializeRequest req = serializeMethod req
 	                   ++ " "
-	                   ++ serializeUri req
+	                   ++ uri req
 										 ++ " HTTP/1.1\n"
 										 ++ serializeHeaders req
 										 ++ "\n\n"
-										 ++ serializeBody req
-
-serializeUri :: Request -> String
-serializeUri = uri
-
-serializeBody :: Request -> String
-serializeBody = body
+										 ++ body req
 
 serializeMethod :: Request -> String
 serializeMethod req =
@@ -44,7 +38,6 @@ serializeMethod req =
 		PUT    -> "PUT"
 		UPDATE -> "UPDATE"
 		DELETE -> "DELETE"
-		_      -> ""
 
 serializeHeaders :: Request -> String
 serializeHeaders =

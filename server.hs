@@ -40,8 +40,8 @@ handleConn sock state = do
   putStrLn $ unpack rawReq
   let req = readRequest $ unpack rawReq
   case req of
-    Just r -> handleRequest sock r state
-    Nothing -> putStrLn "Invalid request: could not parse request."
+		Just r  -> handleRequest sock r state
+		_       -> putStrLn "Invalid request: could not parse request."
 
 -- handleRequest finds the appropriate handler for the Request
 handleRequest :: Socket -> Request -> ServerState -> IO ()
@@ -50,9 +50,8 @@ handleRequest sock req state = do
   putStrLn $ "Request for route " ++ p
   let handler = lookup p (handlers state)
   case handler of
-		Just h  -> sendAll sock $ pack $ show $ R.runReader h req
-		--Just h  -> putStrLn $ show $ R.runReader h req
-		Nothing -> putStrLn $ "No handler for route " ++ p
+    Just h  -> sendAll sock . pack . serializeResponse $ R.runReader h req
+    Nothing -> putStrLn $ "No handler for route " ++ p
 
 -- adds a handler for GET requests at a specific route
 get :: RoutePattern -> Handler -> ST.State ServerState ()
@@ -63,4 +62,4 @@ get route handler = do
 main = apollo (PortNumber 3000) $ do
   get "/" $ do
     req <- R.ask
-    return $ Response "Done"
+    return $ status200 "Hello!"
