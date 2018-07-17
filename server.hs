@@ -1,6 +1,8 @@
 
 import qualified Control.Monad.State as ST
 import qualified Control.Monad.Reader as R
+import Prelude hiding (all)
+import Text.Regex.Posix ((=~))
 import Network (withSocketsDo, listenOn, PortID(..))
 import Network.Socket (Socket, accept, close)
 import Network.Socket.ByteString (sendAll, recv) 
@@ -10,12 +12,14 @@ import Data.ByteString.Char8 (pack, unpack)
 import Request
 import Response
 
-type Handler = R.Reader Request Response
+type Handler      = R.Reader Request Response
 type RoutePattern = String
+type Route        = String
+type HandlerTable = [(RoutePattern, RequestMethod, Handler)]
 
 data ServerState =
   ServerState {
-    handlers :: [(String, Handler)]
+    handlers :: HandlerTable
   }
 
 initState = ServerState []
@@ -46,9 +50,11 @@ handleConn sock state = do
 -- handleRequest finds the appropriate handler for the Request
 handleRequest :: Socket -> Request -> ServerState -> IO ()
 handleRequest sock req state = do
-  let p = uri req 
+  let p = route req 
+  let m = method req
   putStrLn $ "Request for route " ++ p
-  let handler = lookup p (handlers state)
+  putStrLn $ show $ map (\(x,y,z) -> x) $ handlers state
+  let handler = lookupHandler p m (handlers state)
   case handler of
     Just h  -> sendAll sock . pack . serializeResponse $ R.runReader h req
     Nothing -> putStrLn $ "No handler for route " ++ p
@@ -57,9 +63,29 @@ handleRequest sock req state = do
 get :: RoutePattern -> Handler -> ST.State ServerState ()
 get route handler = do
   (ServerState handlers) <- ST.get
-  ST.put $ ServerState $ (route, handler):handlers
+  ST.put $ ServerState $ handlers ++ [(route, GET, handler)] -- Must append
+
+-- adds a handler for GET requests at a specific route
+put :: RoutePattern -> Handler -> ST.State ServerState ()
+put route handler = do
+  (ServerState handlers) <- ST.get
+  ST.put $ ServerState $ handlers ++ [(route, PUT, handler)] -- Must append
+
+all :: RoutePattern -> Handler -> ST.State ServerState ()
+all route handler = do
+  (ServerState handlers) <- ST.get
+  ST.put $ ServerState $ handlers ++ [(route, ALL, handler)] -- Must append
+
+-- finds a handler in the handler table
+lookupHandler :: Route -> RequestMethod -> HandlerTable -> Maybe Handler
+lookupHandler _ _ [] = Nothing
+lookupHandler route method ((p, m, h):xs)
+  | route =~ p && (method == m || m == ALL) = Just h
+  | otherwise                               = lookupHandler route method xs
 
 main = apollo (PortNumber 3000) $ do
-  get "/" $ do
+  get "/movies" $ do
     req <- R.ask
     return $ status200 "Hello!"
+  all "/" $ do
+    return $ status404 "Nothing at root."

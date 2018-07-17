@@ -1,19 +1,20 @@
 
 module Request(
   Request(..),
-  RequestMethod,
+  RequestMethod(..),
   readRequest
 ) where
+
 import Data.List (isInfixOf, dropWhileEnd)
 import Data.List.Split (splitOn)
 import Data.Char (isSpace)
 
-data RequestMethod = GET | PUT | UPDATE | DELETE
-  deriving Show
+data RequestMethod = ALL | GET | PUT | POST | UPDATE | DELETE
+  deriving (Show, Eq)
 
 data Request =
   Request {
-    uri     :: String,
+    route   :: String,
     method  :: RequestMethod,
     headers :: [(String, String)],
     body    :: String
@@ -25,7 +26,7 @@ data Request =
 serializeRequest :: Request -> String
 serializeRequest req = serializeMethod req
                      ++ " "
-                     ++ uri req
+                     ++ route req
                      ++ " HTTP/1.1\n"
                      ++ serializeHeaders req
                      ++ "\n\n"
@@ -38,6 +39,8 @@ serializeMethod req =
     PUT    -> "PUT"
     UPDATE -> "UPDATE"
     DELETE -> "DELETE"
+    POST   -> "POST"
+    ALL    -> "ALL"
 
 serializeHeaders :: Request -> String
 serializeHeaders =
@@ -60,6 +63,7 @@ readMethod req =
   case method of
     "GET"    -> Just GET
     "PUT"    -> Just PUT
+    "POST"   -> Just POST
     "UPDATE" -> Just UPDATE
     "DELETE" -> Just DELETE
     _        -> Nothing
