@@ -1,8 +1,8 @@
 
 module Request(
   Request(..),
-	RequestMethod,
-	readRequest
+  RequestMethod,
+  readRequest
 ) where
 import Data.List (isInfixOf, dropWhileEnd)
 import Data.List.Split (splitOn)
@@ -12,11 +12,11 @@ data RequestMethod = GET | PUT | UPDATE | DELETE
   deriving Show
 
 data Request =
-	Request {
+  Request {
     uri     :: String,
-		method  :: RequestMethod,
-		headers :: [(String, String)],
-		body    :: String
+    method  :: RequestMethod,
+    headers :: [(String, String)],
+    body    :: String
   } deriving Show
 
 
@@ -24,33 +24,33 @@ data Request =
 
 serializeRequest :: Request -> String
 serializeRequest req = serializeMethod req
-	                   ++ " "
-	                   ++ uri req
-										 ++ " HTTP/1.1\n"
-										 ++ serializeHeaders req
-										 ++ "\n\n"
-										 ++ body req
+                     ++ " "
+                     ++ uri req
+                     ++ " HTTP/1.1\n"
+                     ++ serializeHeaders req
+                     ++ "\n\n"
+                     ++ body req
 
 serializeMethod :: Request -> String
 serializeMethod req =
-	case method req of
-		GET    -> "GET"
-		PUT    -> "PUT"
-		UPDATE -> "UPDATE"
-		DELETE -> "DELETE"
+  case method req of
+    GET    -> "GET"
+    PUT    -> "PUT"
+    UPDATE -> "UPDATE"
+    DELETE -> "DELETE"
 
 serializeHeaders :: Request -> String
 serializeHeaders =
-	foldl (\acc (key, val) -> acc ++ "\n" ++ key ++ ": " ++ val) "" . headers
+  foldl (\acc (key, val) -> acc ++ "\n" ++ key ++ ": " ++ val) "" . headers
 
 ---------- Deserialization ---------- 
 
 readRequest :: String -> Maybe Request
 readRequest req =
-	Request <$> readUri     req
-					<*> readMethod  req
-					<*> readHeaders req
-					<*> readBody    req
+  Request <$> readUri     req
+          <*> readMethod  req
+          <*> readHeaders req
+          <*> readBody    req
 
 readUri :: String -> Maybe String
 readUri = Just . (!! 1) . words . head . lines
@@ -78,9 +78,9 @@ readBody req =
 
 readOneHeader :: String -> Maybe (String, String)
 readOneHeader header
-	| ": " `isInfixOf` header = Just (key, value)
+  | ": " `isInfixOf` header = Just (key, value)
   | ':'  `elem` header      = Just (key', value')
-	| otherwise               = Nothing
+  | otherwise               = Nothing
   where [key, value]   = (splitOn ": " . strip) header
         [key', value'] = (splitOn ":"  . strip) header
 

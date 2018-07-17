@@ -15,7 +15,7 @@ type RoutePattern = String
 
 data ServerState =
   ServerState {
-		handlers :: [(String, Handler)]
+    handlers :: [(String, Handler)]
   }
 
 initState = ServerState []
@@ -40,8 +40,8 @@ handleConn sock state = do
   putStrLn $ unpack rawReq
   let req = readRequest $ unpack rawReq
   case req of
-		Just r  -> handleRequest sock r state
-		_       -> putStrLn "Invalid request: could not parse request."
+    Just r  -> handleRequest sock r state
+    _       -> putStrLn "Invalid request: could not parse request."
 
 -- handleRequest finds the appropriate handler for the Request
 handleRequest :: Socket -> Request -> ServerState -> IO ()
