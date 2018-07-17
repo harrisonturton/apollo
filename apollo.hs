@@ -13,7 +13,7 @@ import qualified Control.Monad.Reader as R
 
 import Prelude hiding (all)
 import Text.Regex.Posix ((=~))
-import Network (withSocketsDo, listenOn, PortID(..))
+import Network (withSocketsDo, listenOn, PortID(..), PortNumber)
 import Network.Socket (Socket, accept, close)
 import Network.Socket.ByteString (sendAll, recv) 
 import Control.Concurrent.Async (async)
@@ -27,14 +27,15 @@ import State
 initialState = ServerState []
 
 -- apollo is the main entry point into the server
-apollo :: PortID -> ST.State ServerState () -> IO ()
+apollo :: Int -> ST.State ServerState () -> IO ()
 apollo port actions = do
-  sock <- listenOn $ port
+  sock <- listenOn $ PortNumber $ fromIntegral port
   putStrLn $ "Running Apollo on " ++ show port ++ "..."
   let state = ST.execState actions initialState
   forever $ do
     (conn, _) <- accept sock
     async $ handleConn conn state
+  where makePort x = PortNumber x
 
 -- handleConn is called in a new thread for each connection
 -- handles turning the raw request plaintext into a proper
