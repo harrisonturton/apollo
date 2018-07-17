@@ -1,7 +1,11 @@
 
-module Server (
+module Apollo (
   ServerState,
-  apollo
+  apollo,
+  status200,
+  get,
+  post,
+  all,
 ) where
 
 import qualified Control.Monad.State as ST
@@ -63,10 +67,3 @@ lookupHandler _ _ [] = Nothing
 lookupHandler route method ((p, m, h):xs)
   | route =~ p && (method == m || m == ALL) = Just h
   | otherwise                               = lookupHandler route method xs
-
-main = apollo (PortNumber 3000) $ do
-  get "/movies" $ do
-    req <- R.ask
-    return $ status200 "Hello!"
-  all "/" $ do
-    return $ status404 "Nothing at root."
