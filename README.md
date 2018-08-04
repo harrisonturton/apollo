@@ -1,6 +1,4 @@
-![og](/assets/logo.png)
-
-
+# Apollo
 
 For Haskell beginners, the barrier to writing "real-world" programs is high. We have to push through alien syntax, a strict compiler before finally tackling the mountain that is `Control.Monad`.
 
