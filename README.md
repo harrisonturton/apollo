@@ -4,7 +4,7 @@ For Haskell beginners, the barrier to writing "real-world" programs is high. We 
 
 Current frameworks are confusing for beginners, with nested monads and arcane symbols — what the heck does `<|>` mean?
 
-**Apollo is for people who've just finished LYAH.** It features a small, readable (and lovingly commented!) codebase. Only the simple `Reader` and `State` monads are exposed to the user.
+**Apollo is for people who've just finished LYAH.** It features a small, readable (and well commented!) codebase. Only the simple `Reader` and `State` monads are exposed to the user.
 
 ### Features
 
